@@ -1,3 +1,10 @@
-# Your blog
+# README - Algorithms & Machine Learning Blog
 
-This is the repository for your blog! Click *_config.yml* above to get started and fill in the details. Then click *index.md* and edit it to start creating your home page.
+### Website
+
+- https://nathanielng.github.io
+
+### Setup & Configuration
+
+- **Configuration file**: `_config.yml`
+- **Home page**: `index.md`
