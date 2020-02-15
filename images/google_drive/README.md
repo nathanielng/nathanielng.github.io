@@ -13,4 +13,6 @@ for API access to Google Drive
 
 ![Go to credentials section]({{ BASE_PATH }}/images/google_drive/03 APIs & Services - Credentials.png)
 
-![Enter service account details.png]({{ BASE_PATH }}/images/google_drive/04 Enter service account details.png)
+![Create credentials - service account]({{ BASE_PATH }}/images/google_drive/04 Create credentials - service account.png)
+
+![Enter service account details.png]({{ BASE_PATH }}/images/google_drive/05 Enter service account details.png)
