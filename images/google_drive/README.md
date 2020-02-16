@@ -16,3 +16,15 @@ for API access to Google Drive
 ![Create credentials - service account]({{ BASE_PATH }}/images/google_drive/04 Create credentials - service account.png)
 
 ![Enter service account details.png]({{ BASE_PATH }}/images/google_drive/05 Enter service account details.png)
+
+![Give service account project access (optional)]({{ BASE_PATH }}/images/google_drive/06 GIve service account project access (optional).png)
+
+### 3. Create a private key for the service account
+
+![Create a private key for the service account]({{ BASE_PATH }}/images/google_drive/07 Create a private key for the service account.png)
+
+![Choose the JSON key type]({{ BASE_PATH }}/images/google_drive/08 Choose the JSON key type.png)
+
+![JSON key is saved to your computer]({{ BASE_PATH }}/images/google_drive/09 JSON key is saved to your computer.png)
+
+![Service account JSON key is displayed]({{ BASE_PATH }}/images/google_drive/10 Service account JSON key is displayed.png)
