@@ -10,7 +10,7 @@ To create a new project, click "+Create Project". Key in a project name and clic
 
 ![Create a new project]({{ BASE_PATH }}/images/google_drive/01 Create new project.png)
 
-Refresh the screenn and the new project will appear:
+Refresh the screen and the new project will appear:
 
 ![New project created]({{ BASE_PATH }}/images/google_drive/02 New project created.png)
 
