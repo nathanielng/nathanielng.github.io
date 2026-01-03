@@ -1,0 +1,1540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unicode & Emoji Picker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 700px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 24px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 12px;
+        }
+
+        .multi-select-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 12px;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background-color: #667eea;
+        }
+
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(26px);
+        }
+
+        .toggle-label {
+            font-size: 14px;
+            color: white;
+            font-weight: 500;
+        }
+
+        .main-content {
+            display: flex;
+            height: 600px;
+        }
+
+        .sidebar {
+            width: 200px;
+            background: #f8f9fa;
+            border-right: 2px solid #e9ecef;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .search-box {
+            padding: 16px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            font-size: 13px;
+            transition: border-color 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .nav-buttons {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+        }
+
+        .nav-buttons::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .nav-buttons::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 3px;
+        }
+
+        .nav-btn {
+            width: 100%;
+            padding: 12px 16px;
+            margin-bottom: 4px;
+            border: none;
+            background: transparent;
+            text-align: left;
+            font-size: 14px;
+            font-weight: 500;
+            color: #495057;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .nav-btn:hover {
+            background: white;
+            color: #667eea;
+        }
+
+        .nav-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .content {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+        }
+
+        .content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .content::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 4px;
+        }
+
+        .content::-webkit-scrollbar-track {
+            background: #f8f9fa;
+        }
+
+        .category {
+            margin-bottom: 40px;
+            scroll-margin-top: 20px;
+        }
+
+        .category:last-child {
+            margin-bottom: 0;
+        }
+
+        .category-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .character-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+            gap: 12px;
+        }
+
+        .character-btn {
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 8px;
+            min-height: 100px;
+        }
+
+        .character-btn[title] {
+            position: relative;
+        }
+
+        .character-btn[title]:hover::before {
+            content: attr(title);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            white-space: pre-line;
+            z-index: 1000;
+            pointer-events: none;
+            margin-bottom: 8px;
+            min-width: 120px;
+            text-align: center;
+            line-height: 1.4;
+            animation: tooltipFadeIn 0.15s ease;
+        }
+
+        .character-btn[title]:hover::after {
+            content: '';
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: rgba(0, 0, 0, 0.9);
+            margin-bottom: 2px;
+            pointer-events: none;
+            animation: tooltipFadeIn 0.15s ease;
+        }
+
+        @keyframes tooltipFadeIn {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(5px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        .character-btn .char {
+            font-size: 32px;
+            margin-bottom: 6px;
+        }
+
+        .character-btn .desc {
+            font-size: 11px;
+            color: #6c757d;
+            text-align: center;
+            line-height: 1.3;
+            font-weight: 500;
+        }
+
+        .character-btn:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        }
+
+        .character-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(102, 126, 234, 0.2);
+        }
+
+        .character-btn.selected {
+            border-color: #667eea;
+            background: #f0f3ff;
+            position: relative;
+        }
+
+        .character-btn.selected::after {
+            content: '';
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 20px;
+            height: 20px;
+            background: #667eea;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .character-btn.selected::before {
+            content: '✓';
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 20px;
+            height: 20px;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1;
+        }
+
+        .character-btn.copied {
+            animation: copyPulse 0.4s ease;
+        }
+
+        @keyframes copyPulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.1);
+                background: #667eea;
+                color: white;
+            }
+        }
+
+        .bottom-bar {
+            background: #f8f9fa;
+            border-top: 2px solid #e9ecef;
+            padding: 14px 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            min-height: 56px;
+        }
+
+        .status-message {
+            font-size: 14px;
+            color: #6c757d;
+            flex: 1;
+        }
+
+        .status-message.success {
+            color: #28a745;
+            font-weight: 500;
+        }
+
+        .clipboard-display {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+        }
+
+        .clipboard-label {
+            font-weight: 600;
+            color: #495057;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        .clipboard-content {
+            font-size: 24px;
+            color: #212529;
+            word-break: break-all;
+            line-height: 1.2;
+        }
+
+        .clipboard-count {
+            font-size: 12px;
+            color: #6c757d;
+            background: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            white-space: nowrap;
+            border: 1px solid #e9ecef;
+        }
+
+        .clear-selection-btn {
+            padding: 8px 16px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .clear-selection-btn:hover {
+            background: #5568d3;
+        }
+
+        .search-box {
+            margin-bottom: 16px;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        @media (max-width: 600px) {
+            .main-content {
+                flex-direction: column;
+                height: auto;
+            }
+
+            .sidebar {
+                width: 100%;
+                border-right: none;
+                border-bottom: 2px solid #e9ecef;
+            }
+
+            .nav-buttons {
+                display: flex;
+                overflow-x: auto;
+                padding: 8px;
+            }
+
+            .nav-btn {
+                white-space: nowrap;
+                margin-right: 4px;
+                margin-bottom: 0;
+            }
+
+            .content {
+                max-height: 500px;
+            }
+
+            .character-grid {
+                grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            }
+
+            .character-btn .char {
+                font-size: 28px;
+            }
+
+            .character-btn .desc {
+                font-size: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Unicode & Emoji Picker</h1>
+            <div class="multi-select-toggle">
+                <label class="toggle-switch">
+                    <input type="checkbox" id="multiSelectToggle">
+                    <span class="toggle-slider"></span>
+                </label>
+                <span class="toggle-label">Multi-Select Mode</span>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="sidebar">
+                <div class="search-box">
+                    <input 
+                        type="text" 
+                        class="search-input" 
+                        id="searchInput" 
+                        placeholder="Search..."
+                        autocomplete="off"
+                    >
+                </div>
+                <nav class="nav-buttons" id="navButtons"></nav>
+            </div>
+
+            <div class="content" id="content">
+                <div id="categories"></div>
+            </div>
+        </div>
+
+        <div class="bottom-bar">
+            <div class="status-message" id="statusMessage">
+                Click any character to copy to clipboard
+            </div>
+            <div class="clipboard-display" id="clipboardDisplay" style="display: none;">
+                <span class="clipboard-label">📋 Clipboard:</span>
+                <span class="clipboard-content" id="clipboardContent"></span>
+                <span class="clipboard-count" id="clipboardCount"></span>
+            </div>
+            <button class="clear-selection-btn" id="clearSelectionBtn" style="display: none;">
+                Clear Selection
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Unicode character categories with descriptions (ordered by frequency)
+        const UNICODE_CATEGORIES = {
+            "Common Emoji": [
+                {char: "🙂", desc: "Slightly Smiling Face"},
+                {char: "😂", desc: "Face with Tears of Joy"},
+                {char: "❤️", desc: "Red Heart"},
+                {char: "👍", desc: "Thumbs Up"},
+                {char: "👎", desc: "Thumbs Down"},
+                {char: "🎉", desc: "Party Popper"},
+                {char: "🎂", desc: "Birthday Cake"},
+                {char: "🥂", desc: "Clinking Glasses"},
+                {char: "🍽️", desc: "Fork and Knife with Plate"},
+                {char: "☀️", desc: "Sun"},
+                {char: "☁️", desc: "Cloud"},
+                {char: "🌧️", desc: "Rain Cloud"},
+                {char: "🔥", desc: "Fire"},
+                {char: "💧", desc: "Droplet"},
+                {char: "⚡", desc: "Lightning Bolt"},
+                {char: "⭐", desc: "Star"},
+                {char: "🌍", desc: "Globe"},
+                {char: "🚀", desc: "Rocket"},
+                {char: "✈️", desc: "Airplane"},
+                {char: "🏖️", desc: "Beach/Vacation"},
+                {char: "💡", desc: "Light Bulb"},
+                {char: "🔍", desc: "Magnifying Glass"},
+                {char: "🎯", desc: "Dartboard"},
+                {char: "📅", desc: "Calendar"},
+                {char: "⏱️", desc: "Stopwatch/Timer"},
+                {char: "⏳", desc: "Hourglass"},
+                {char: "📝", desc: "Memo/Note"},
+                {char: "📄", desc: "Page/Document"},
+                {char: "✉️", desc: "Envelope"},
+                {char: "📞", desc: "Phone"},
+                {char: "⚙️", desc: "Gear"},
+                {char: "🛠️", desc: "Hammer and Wrench"},
+                {char: "✂️", desc: "Scissors"},
+                {char: "🗑️", desc: "Wastebasket"},
+                {char: "🧵", desc: "Thread"},
+                {char: "💵", desc: "Dollar Banknote"},
+                {char: "⚠️", desc: "Warning Sign"},
+                {char: "🚫", desc: "Prohibited"},
+                {char: "⛔", desc: "No Entry"},
+                {char: "🛑", desc: "Stop Sign"},
+                {char: "🎵", desc: "Music Note"},
+                {char: "⎇", desc: "Alternative Key Symbol"},
+                {char: "🇸🇬", desc: "Singapore Flag"}
+            ],
+            "Arrows": [
+                {char: "→", desc: "Right Arrow"},
+                {char: "←", desc: "Left Arrow"},
+                {char: "↑", desc: "Up Arrow"},
+                {char: "↓", desc: "Down Arrow"},
+                {char: "↔", desc: "Left-Right Arrow"},
+                {char: "↕", desc: "Up-Down Arrow"},
+                {char: "⇒", desc: "Right Double Arrow"},
+                {char: "⇐", desc: "Left Double Arrow"},
+                {char: "⇑", desc: "Up Double Arrow"},
+                {char: "⇓", desc: "Down Double Arrow"}
+            ],
+            "Check & Cross": [
+                {char: "✅", desc: "Check Mark Button"},
+                {char: "❌", desc: "Cross Mark"},
+                {char: "𐄂", desc: "Cross Mark (Alt)"},
+                {char: "✓", desc: "Check Mark"},
+                {char: "✗", desc: "Ballot X"},
+                {char: "☑", desc: "Checked Box"},
+                {char: "☒", desc: "Crossed Box"},
+                {char: "⊗", desc: "Circled Times"},
+                {char: "⊕", desc: "Circled Plus"}
+            ],
+            "Symbols": [
+                {char: "°", desc: "Degree Sign"},
+                {char: "™️", desc: "Trademark"},
+                {char: "©️", desc: "Copyright"},
+                {char: "®", desc: "Registered Trademark"},
+                {char: "§", desc: "Section Sign"},
+                {char: "¶", desc: "Pilcrow/Paragraph"},
+                {char: "†", desc: "Dagger"},
+                {char: "‡", desc: "Double Dagger"},
+                {char: "•", desc: "Bullet Point"},
+                {char: "·", desc: "Middle Dot"}
+            ],
+            "Tech Emoji": [
+                {char: "💻", desc: "Laptop Computer"},
+                {char: "🖥️", desc: "Desktop Computer"},
+                {char: "📱", desc: "Mobile Phone"},
+                {char: "💾", desc: "Floppy Disk"},
+                {char: "📁", desc: "Folder"},
+                {char: "🔋", desc: "Battery Full"},
+                {char: "🪫", desc: "Low Battery"},
+                {char: "🛜", desc: "Wireless/WiFi"},
+                {char: "📶", desc: "Signal Bars"},
+                {char: "🔒", desc: "Lock"},
+                {char: "🔓", desc: "Unlocked"},
+                {char: "🔐", desc: "Locked with Key"},
+                {char: "🔑", desc: "Key"},
+                {char: "🐛", desc: "Bug"},
+                {char: "📊", desc: "Bar Chart"},
+                {char: "📈", desc: "Chart Increasing"}
+            ],
+            "Math": [
+                {char: "×", desc: "Multiplication Sign"},
+                {char: "÷", desc: "Division Sign"},
+                {char: "±", desc: "Plus-Minus Sign"},
+                {char: "=", desc: "Equals Sign"},
+                {char: "≠", desc: "Not Equal"},
+                {char: "≈", desc: "Approximately Equal"},
+                {char: "∼", desc: "Similar To"},
+                {char: "≤", desc: "Less Than or Equal"},
+                {char: "≥", desc: "Greater Than or Equal"},
+                {char: "√", desc: "Square Root"},
+                {char: "∞", desc: "Infinity"},
+                {char: "∑", desc: "Summation"},
+                {char: "∫", desc: "Integral"}
+            ],
+            "Punctuation": [
+                {char: "…", desc: "Ellipsis"},
+                {char: "–", desc: "En Dash"},
+                {char: "—", desc: "Em Dash"},
+                {char: "‹", desc: "Single Left Angle Quote"},
+                {char: "›", desc: "Single Right Angle Quote"},
+                {char: "«", desc: "Double Left Angle Quote"},
+                {char: "»", desc: "Double Right Angle Quote"},
+                {char: "\u2018", desc: "Left Single Quote"},
+                {char: "\u2019", desc: "Right Single Quote"},
+                {char: "\u201C", desc: "Left Double Quote"},
+                {char: "\u201D", desc: "Right Double Quote"}
+            ],
+            "Box Drawing": [
+                {char: "├", desc: "Box Drawings Light Vertical Right"},
+                {char: "─", desc: "Box Drawings Light Horizontal"},
+                {char: "└", desc: "Box Drawings Light Up Right"},
+                {char: "┌", desc: "Box Drawings Light Down Right"},
+                {char: "┐", desc: "Box Drawings Light Down Left"},
+                {char: "┘", desc: "Box Drawings Light Up Left"},
+                {char: "│", desc: "Box Drawings Light Vertical"},
+                {char: "┤", desc: "Box Drawings Light Vertical Left"},
+                {char: "┬", desc: "Box Drawings Light Down Horizontal"},
+                {char: "┴", desc: "Box Drawings Light Up Horizontal"},
+                {char: "┼", desc: "Box Drawings Light Cross"}
+            ]
+        };
+
+        let allCharacters = [];
+        let activeCategory = null;
+        let multiSelectMode = false;
+        let selectedCharacters = [];
+        let unicodeDatabase = null;
+        let isLoadingDatabase = false;
+
+        // Lazy load Unicode database
+        async function loadUnicodeDatabase() {
+            if (unicodeDatabase) {
+                return unicodeDatabase;
+            }
+            
+            if (isLoadingDatabase) {
+                // Wait for existing load to complete
+                while (isLoadingDatabase) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+                return unicodeDatabase;
+            }
+            
+            isLoadingDatabase = true;
+            console.info('Loading Unicode database...');
+            
+            try {
+                // For now, we'll create an inline database
+                // In production, this would be: const response = await fetch('unicode-data.json');
+                unicodeDatabase = await createUnicodeDatabase();
+                console.info('Unicode database loaded successfully');
+                return unicodeDatabase;
+            } catch (error) {
+                console.error('Failed to load Unicode database:', error);
+                return [];
+            } finally {
+                isLoadingDatabase = false;
+            }
+        }
+
+        // Create comprehensive Unicode database
+        async function createUnicodeDatabase() {
+            // This will be an extensive list of Unicode characters
+            // For now, returning a curated extended set
+            return [
+                // Extended Arrows
+                {char: "↖", desc: "Up-Left Arrow", category: "Arrows"},
+                {char: "↗", desc: "Up-Right Arrow", category: "Arrows"},
+                {char: "↘", desc: "Down-Right Arrow", category: "Arrows"},
+                {char: "↙", desc: "Down-Left Arrow", category: "Arrows"},
+                {char: "⟵", desc: "Long Left Arrow", category: "Arrows"},
+                {char: "⟶", desc: "Long Right Arrow", category: "Arrows"},
+                {char: "⟷", desc: "Long Left-Right Arrow", category: "Arrows"},
+                {char: "⤴", desc: "Arrow Pointing Right Then Curving Up", category: "Arrows"},
+                {char: "⤵", desc: "Arrow Pointing Right Then Curving Down", category: "Arrows"},
+                
+                // Extended Math Symbols
+                {char: "∂", desc: "Partial Differential", category: "Math"},
+                {char: "∆", desc: "Delta", category: "Math"},
+                {char: "∏", desc: "Product", category: "Math"},
+                {char: "√", desc: "Square Root", category: "Math"},
+                {char: "∛", desc: "Cube Root", category: "Math"},
+                {char: "∜", desc: "Fourth Root", category: "Math"},
+                {char: "∝", desc: "Proportional To", category: "Math"},
+                {char: "∞", desc: "Infinity", category: "Math"},
+                {char: "∠", desc: "Angle", category: "Math"},
+                {char: "∡", desc: "Measured Angle", category: "Math"},
+                {char: "∢", desc: "Spherical Angle", category: "Math"},
+                {char: "∣", desc: "Divides", category: "Math"},
+                {char: "∤", desc: "Does Not Divide", category: "Math"},
+                {char: "∥", desc: "Parallel To", category: "Math"},
+                {char: "∦", desc: "Not Parallel To", category: "Math"},
+                {char: "∧", desc: "Logical And", category: "Math"},
+                {char: "∨", desc: "Logical Or", category: "Math"},
+                {char: "∩", desc: "Intersection", category: "Math"},
+                {char: "∪", desc: "Union", category: "Math"},
+                {char: "∫", desc: "Integral", category: "Math"},
+                {char: "∬", desc: "Double Integral", category: "Math"},
+                {char: "∭", desc: "Triple Integral", category: "Math"},
+                {char: "∮", desc: "Contour Integral", category: "Math"},
+                {char: "∀", desc: "For All", category: "Math"},
+                {char: "∃", desc: "There Exists", category: "Math"},
+                {char: "∄", desc: "There Does Not Exist", category: "Math"},
+                {char: "∅", desc: "Empty Set", category: "Math"},
+                {char: "∈", desc: "Element Of", category: "Math"},
+                {char: "∉", desc: "Not An Element Of", category: "Math"},
+                {char: "⊂", desc: "Subset Of", category: "Math"},
+                {char: "⊃", desc: "Superset Of", category: "Math"},
+                {char: "⊄", desc: "Not A Subset Of", category: "Math"},
+                {char: "⊆", desc: "Subset Of Or Equal To", category: "Math"},
+                {char: "⊇", desc: "Superset Of Or Equal To", category: "Math"},
+                
+                // Greek Letters
+                {char: "α", desc: "Greek Small Letter Alpha", category: "Greek"},
+                {char: "β", desc: "Greek Small Letter Beta", category: "Greek"},
+                {char: "γ", desc: "Greek Small Letter Gamma", category: "Greek"},
+                {char: "δ", desc: "Greek Small Letter Delta", category: "Greek"},
+                {char: "ε", desc: "Greek Small Letter Epsilon", category: "Greek"},
+                {char: "ζ", desc: "Greek Small Letter Zeta", category: "Greek"},
+                {char: "η", desc: "Greek Small Letter Eta", category: "Greek"},
+                {char: "θ", desc: "Greek Small Letter Theta", category: "Greek"},
+                {char: "ι", desc: "Greek Small Letter Iota", category: "Greek"},
+                {char: "κ", desc: "Greek Small Letter Kappa", category: "Greek"},
+                {char: "λ", desc: "Greek Small Letter Lambda", category: "Greek"},
+                {char: "μ", desc: "Greek Small Letter Mu", category: "Greek"},
+                {char: "ν", desc: "Greek Small Letter Nu", category: "Greek"},
+                {char: "ξ", desc: "Greek Small Letter Xi", category: "Greek"},
+                {char: "π", desc: "Greek Small Letter Pi", category: "Greek"},
+                {char: "ρ", desc: "Greek Small Letter Rho", category: "Greek"},
+                {char: "σ", desc: "Greek Small Letter Sigma", category: "Greek"},
+                {char: "τ", desc: "Greek Small Letter Tau", category: "Greek"},
+                {char: "φ", desc: "Greek Small Letter Phi", category: "Greek"},
+                {char: "χ", desc: "Greek Small Letter Chi", category: "Greek"},
+                {char: "ψ", desc: "Greek Small Letter Psi", category: "Greek"},
+                {char: "ω", desc: "Greek Small Letter Omega", category: "Greek"},
+                {char: "Α", desc: "Greek Capital Letter Alpha", category: "Greek"},
+                {char: "Β", desc: "Greek Capital Letter Beta", category: "Greek"},
+                {char: "Γ", desc: "Greek Capital Letter Gamma", category: "Greek"},
+                {char: "Δ", desc: "Greek Capital Letter Delta", category: "Greek"},
+                {char: "Θ", desc: "Greek Capital Letter Theta", category: "Greek"},
+                {char: "Λ", desc: "Greek Capital Letter Lambda", category: "Greek"},
+                {char: "Π", desc: "Greek Capital Letter Pi", category: "Greek"},
+                {char: "Σ", desc: "Greek Capital Letter Sigma", category: "Greek"},
+                {char: "Φ", desc: "Greek Capital Letter Phi", category: "Greek"},
+                {char: "Ω", desc: "Greek Capital Letter Omega", category: "Greek"},
+                
+                // Currency Symbols
+                {char: "¢", desc: "Cent Sign", category: "Currency"},
+                {char: "£", desc: "Pound Sign", category: "Currency"},
+                {char: "¤", desc: "Currency Sign", category: "Currency"},
+                {char: "¥", desc: "Yen Sign", category: "Currency"},
+                {char: "€", desc: "Euro Sign", category: "Currency"},
+                {char: "₹", desc: "Indian Rupee Sign", category: "Currency"},
+                {char: "₽", desc: "Ruble Sign", category: "Currency"},
+                {char: "₩", desc: "Won Sign", category: "Currency"},
+                {char: "₪", desc: "New Sheqel Sign", category: "Currency"},
+                {char: "₫", desc: "Dong Sign", category: "Currency"},
+                
+                // More Emojis - People & Body
+                {char: "👋", desc: "Waving Hand", category: "Emoji"},
+                {char: "🤚", desc: "Raised Back of Hand", category: "Emoji"},
+                {char: "🖐", desc: "Hand with Fingers Splayed", category: "Emoji"},
+                {char: "✋", desc: "Raised Hand", category: "Emoji"},
+                {char: "🖖", desc: "Vulcan Salute", category: "Emoji"},
+                {char: "👌", desc: "OK Hand", category: "Emoji"},
+                {char: "🤌", desc: "Pinched Fingers", category: "Emoji"},
+                {char: "🤏", desc: "Pinching Hand", category: "Emoji"},
+                {char: "✌", desc: "Victory Hand", category: "Emoji"},
+                {char: "🤞", desc: "Crossed Fingers", category: "Emoji"},
+                {char: "🤟", desc: "Love-You Gesture", category: "Emoji"},
+                {char: "🤘", desc: "Sign of the Horns", category: "Emoji"},
+                {char: "🤙", desc: "Call Me Hand", category: "Emoji"},
+                {char: "👈", desc: "Backhand Index Pointing Left", category: "Emoji"},
+                {char: "👉", desc: "Backhand Index Pointing Right", category: "Emoji"},
+                {char: "👆", desc: "Backhand Index Pointing Up", category: "Emoji"},
+                {char: "👇", desc: "Backhand Index Pointing Down", category: "Emoji"},
+                {char: "☝", desc: "Index Pointing Up", category: "Emoji"},
+                {char: "👏", desc: "Clapping Hands", category: "Emoji"},
+                {char: "🙌", desc: "Raising Hands", category: "Emoji"},
+                {char: "🤝", desc: "Handshake", category: "Emoji"},
+                {char: "🙏", desc: "Folded Hands", category: "Emoji"},
+                {char: "✍", desc: "Writing Hand", category: "Emoji"},
+                {char: "💪", desc: "Flexed Biceps", category: "Emoji"},
+                
+                // More Emojis - Faces
+                {char: "😀", desc: "Grinning Face", category: "Emoji"},
+                {char: "😃", desc: "Grinning Face with Big Eyes", category: "Emoji"},
+                {char: "😄", desc: "Grinning Face with Smiling Eyes", category: "Emoji"},
+                {char: "😁", desc: "Beaming Face with Smiling Eyes", category: "Emoji"},
+                {char: "😅", desc: "Grinning Face with Sweat", category: "Emoji"},
+                {char: "😆", desc: "Grinning Squinting Face", category: "Emoji"},
+                {char: "🤣", desc: "Rolling on the Floor Laughing", category: "Emoji"},
+                {char: "😊", desc: "Smiling Face with Smiling Eyes", category: "Emoji"},
+                {char: "😇", desc: "Smiling Face with Halo", category: "Emoji"},
+                {char: "😍", desc: "Smiling Face with Heart-Eyes", category: "Emoji"},
+                {char: "🤩", desc: "Star-Struck", category: "Emoji"},
+                {char: "😘", desc: "Face Blowing a Kiss", category: "Emoji"},
+                {char: "😗", desc: "Kissing Face", category: "Emoji"},
+                {char: "😚", desc: "Kissing Face with Closed Eyes", category: "Emoji"},
+                {char: "😙", desc: "Kissing Face with Smiling Eyes", category: "Emoji"},
+                {char: "🥲", desc: "Smiling Face with Tear", category: "Emoji"},
+                {char: "😋", desc: "Face Savoring Food", category: "Emoji"},
+                {char: "😛", desc: "Face with Tongue", category: "Emoji"},
+                {char: "😜", desc: "Winking Face with Tongue", category: "Emoji"},
+                {char: "🤪", desc: "Zany Face", category: "Emoji"},
+                {char: "😝", desc: "Squinting Face with Tongue", category: "Emoji"},
+                {char: "🤑", desc: "Money-Mouth Face", category: "Emoji"},
+                {char: "🤗", desc: "Smiling Face with Open Hands", category: "Emoji"},
+                {char: "🤭", desc: "Face with Hand Over Mouth", category: "Emoji"},
+                {char: "🤫", desc: "Shushing Face", category: "Emoji"},
+                {char: "🤔", desc: "Thinking Face", category: "Emoji"},
+                {char: "🤐", desc: "Zipper-Mouth Face", category: "Emoji"},
+                {char: "🤨", desc: "Face with Raised Eyebrow", category: "Emoji"},
+                {char: "😐", desc: "Neutral Face", category: "Emoji"},
+                {char: "😑", desc: "Expressionless Face", category: "Emoji"},
+                {char: "😶", desc: "Face Without Mouth", category: "Emoji"},
+                {char: "😏", desc: "Smirking Face", category: "Emoji"},
+                {char: "😒", desc: "Unamused Face", category: "Emoji"},
+                {char: "🙄", desc: "Face with Rolling Eyes", category: "Emoji"},
+                {char: "😬", desc: "Grimacing Face", category: "Emoji"},
+                {char: "🤥", desc: "Lying Face", category: "Emoji"},
+                {char: "😌", desc: "Relieved Face", category: "Emoji"},
+                {char: "😔", desc: "Pensive Face", category: "Emoji"},
+                {char: "😪", desc: "Sleepy Face", category: "Emoji"},
+                {char: "🤤", desc: "Drooling Face", category: "Emoji"},
+                {char: "😴", desc: "Sleeping Face", category: "Emoji"},
+                {char: "😷", desc: "Face with Medical Mask", category: "Emoji"},
+                {char: "🤒", desc: "Face with Thermometer", category: "Emoji"},
+                {char: "🤕", desc: "Face with Head-Bandage", category: "Emoji"},
+                {char: "🤢", desc: "Nauseated Face", category: "Emoji"},
+                {char: "🤮", desc: "Face Vomiting", category: "Emoji"},
+                {char: "🤧", desc: "Sneezing Face", category: "Emoji"},
+                {char: "🥵", desc: "Hot Face", category: "Emoji"},
+                {char: "🥶", desc: "Cold Face", category: "Emoji"},
+                {char: "😵", desc: "Face with Crossed-Out Eyes", category: "Emoji"},
+                {char: "🤯", desc: "Exploding Head", category: "Emoji"},
+                {char: "😕", desc: "Confused Face", category: "Emoji"},
+                {char: "😟", desc: "Worried Face", category: "Emoji"},
+                {char: "🙁", desc: "Slightly Frowning Face", category: "Emoji"},
+                {char: "☹", desc: "Frowning Face", category: "Emoji"},
+                {char: "😮", desc: "Face with Open Mouth", category: "Emoji"},
+                {char: "😯", desc: "Hushed Face", category: "Emoji"},
+                {char: "😲", desc: "Astonished Face", category: "Emoji"},
+                {char: "😳", desc: "Flushed Face", category: "Emoji"},
+                {char: "🥺", desc: "Pleading Face", category: "Emoji"},
+                {char: "😦", desc: "Frowning Face with Open Mouth", category: "Emoji"},
+                {char: "😧", desc: "Anguished Face", category: "Emoji"},
+                {char: "😨", desc: "Fearful Face", category: "Emoji"},
+                {char: "😰", desc: "Anxious Face with Sweat", category: "Emoji"},
+                {char: "😥", desc: "Sad but Relieved Face", category: "Emoji"},
+                {char: "😢", desc: "Crying Face", category: "Emoji"},
+                {char: "😭", desc: "Loudly Crying Face", category: "Emoji"},
+                {char: "😱", desc: "Face Screaming in Fear", category: "Emoji"},
+                {char: "😖", desc: "Confounded Face", category: "Emoji"},
+                {char: "😣", desc: "Persevering Face", category: "Emoji"},
+                {char: "😞", desc: "Disappointed Face", category: "Emoji"},
+                {char: "😓", desc: "Downcast Face with Sweat", category: "Emoji"},
+                {char: "😩", desc: "Weary Face", category: "Emoji"},
+                {char: "😫", desc: "Tired Face", category: "Emoji"},
+                {char: "🥱", desc: "Yawning Face", category: "Emoji"},
+                {char: "😤", desc: "Face with Steam From Nose", category: "Emoji"},
+                {char: "😡", desc: "Enraged Face", category: "Emoji"},
+                {char: "😠", desc: "Angry Face", category: "Emoji"},
+                {char: "🤬", desc: "Face with Symbols on Mouth", category: "Emoji"},
+                
+                // Animals & Nature
+                {char: "🐶", desc: "Dog Face", category: "Emoji"},
+                {char: "🐱", desc: "Cat Face", category: "Emoji"},
+                {char: "🐭", desc: "Mouse Face", category: "Emoji"},
+                {char: "🐹", desc: "Hamster", category: "Emoji"},
+                {char: "🐰", desc: "Rabbit Face", category: "Emoji"},
+                {char: "🦊", desc: "Fox", category: "Emoji"},
+                {char: "🐻", desc: "Bear", category: "Emoji"},
+                {char: "🐼", desc: "Panda", category: "Emoji"},
+                {char: "🐨", desc: "Koala", category: "Emoji"},
+                {char: "🐯", desc: "Tiger Face", category: "Emoji"},
+                {char: "🦁", desc: "Lion", category: "Emoji"},
+                {char: "🐮", desc: "Cow Face", category: "Emoji"},
+                {char: "🐷", desc: "Pig Face", category: "Emoji"},
+                {char: "🐸", desc: "Frog", category: "Emoji"},
+                {char: "🐵", desc: "Monkey Face", category: "Emoji"},
+                {char: "🙈", desc: "See-No-Evil Monkey", category: "Emoji"},
+                {char: "🙉", desc: "Hear-No-Evil Monkey", category: "Emoji"},
+                {char: "🙊", desc: "Speak-No-Evil Monkey", category: "Emoji"},
+                {char: "🐔", desc: "Chicken", category: "Emoji"},
+                {char: "🐧", desc: "Penguin", category: "Emoji"},
+                {char: "🐦", desc: "Bird", category: "Emoji"},
+                {char: "🐤", desc: "Baby Chick", category: "Emoji"},
+                {char: "🦆", desc: "Duck", category: "Emoji"},
+                {char: "🦅", desc: "Eagle", category: "Emoji"},
+                {char: "🦉", desc: "Owl", category: "Emoji"},
+                {char: "🦇", desc: "Bat", category: "Emoji"},
+                {char: "🐺", desc: "Wolf", category: "Emoji"},
+                {char: "🐗", desc: "Boar", category: "Emoji"},
+                {char: "🐴", desc: "Horse Face", category: "Emoji"},
+                {char: "🦄", desc: "Unicorn", category: "Emoji"},
+                {char: "🐝", desc: "Honeybee", category: "Emoji"},
+                {char: "🐛", desc: "Bug", category: "Emoji"},
+                {char: "🦋", desc: "Butterfly", category: "Emoji"},
+                {char: "🐌", desc: "Snail", category: "Emoji"},
+                {char: "🐞", desc: "Lady Beetle", category: "Emoji"},
+                {char: "🐜", desc: "Ant", category: "Emoji"},
+                {char: "🦟", desc: "Mosquito", category: "Emoji"},
+                {char: "🐢", desc: "Turtle", category: "Emoji"},
+                {char: "🐍", desc: "Snake", category: "Emoji"},
+                {char: "🦎", desc: "Lizard", category: "Emoji"},
+                {char: "🦖", desc: "T-Rex", category: "Emoji"},
+                {char: "🦕", desc: "Sauropod", category: "Emoji"},
+                {char: "🐙", desc: "Octopus", category: "Emoji"},
+                {char: "🦑", desc: "Squid", category: "Emoji"},
+                {char: "🦐", desc: "Shrimp", category: "Emoji"},
+                {char: "🦞", desc: "Lobster", category: "Emoji"},
+                {char: "🦀", desc: "Crab", category: "Emoji"},
+                {char: "🐡", desc: "Blowfish", category: "Emoji"},
+                {char: "🐠", desc: "Tropical Fish", category: "Emoji"},
+                {char: "🐟", desc: "Fish", category: "Emoji"},
+                {char: "🐬", desc: "Dolphin", category: "Emoji"},
+                {char: "🐳", desc: "Spouting Whale", category: "Emoji"},
+                {char: "🐋", desc: "Whale", category: "Emoji"},
+                {char: "🦈", desc: "Shark", category: "Emoji"},
+                {char: "🌲", desc: "Evergreen Tree", category: "Emoji"},
+                {char: "🌳", desc: "Deciduous Tree", category: "Emoji"},
+                {char: "🌴", desc: "Palm Tree", category: "Emoji"},
+                {char: "🌵", desc: "Cactus", category: "Emoji"},
+                {char: "🌾", desc: "Sheaf of Rice", category: "Emoji"},
+                {char: "🌿", desc: "Herb", category: "Emoji"},
+                {char: "☘", desc: "Shamrock", category: "Emoji"},
+                {char: "🍀", desc: "Four Leaf Clover", category: "Emoji"},
+                {char: "🌹", desc: "Rose", category: "Emoji"},
+                {char: "🌺", desc: "Hibiscus", category: "Emoji"},
+                {char: "🌻", desc: "Sunflower", category: "Emoji"},
+                {char: "🌼", desc: "Blossom", category: "Emoji"},
+                {char: "🌷", desc: "Tulip", category: "Emoji"},
+                
+                // Food & Drink
+                {char: "🍇", desc: "Grapes", category: "Emoji"},
+                {char: "🍈", desc: "Melon", category: "Emoji"},
+                {char: "🍉", desc: "Watermelon", category: "Emoji"},
+                {char: "🍊", desc: "Tangerine", category: "Emoji"},
+                {char: "🍋", desc: "Lemon", category: "Emoji"},
+                {char: "🍌", desc: "Banana", category: "Emoji"},
+                {char: "🍍", desc: "Pineapple", category: "Emoji"},
+                {char: "🥭", desc: "Mango", category: "Emoji"},
+                {char: "🍎", desc: "Red Apple", category: "Emoji"},
+                {char: "🍏", desc: "Green Apple", category: "Emoji"},
+                {char: "🍐", desc: "Pear", category: "Emoji"},
+                {char: "🍑", desc: "Peach", category: "Emoji"},
+                {char: "🍒", desc: "Cherries", category: "Emoji"},
+                {char: "🍓", desc: "Strawberry", category: "Emoji"},
+                {char: "🫐", desc: "Blueberries", category: "Emoji"},
+                {char: "🥝", desc: "Kiwi Fruit", category: "Emoji"},
+                {char: "🍅", desc: "Tomato", category: "Emoji"},
+                {char: "🥥", desc: "Coconut", category: "Emoji"},
+                {char: "🥑", desc: "Avocado", category: "Emoji"},
+                {char: "🍆", desc: "Eggplant", category: "Emoji"},
+                {char: "🥔", desc: "Potato", category: "Emoji"},
+                {char: "🥕", desc: "Carrot", category: "Emoji"},
+                {char: "🌽", desc: "Ear of Corn", category: "Emoji"},
+                {char: "🌶", desc: "Hot Pepper", category: "Emoji"},
+                {char: "🥒", desc: "Cucumber", category: "Emoji"},
+                {char: "🥬", desc: "Leafy Green", category: "Emoji"},
+                {char: "🥦", desc: "Broccoli", category: "Emoji"},
+                {char: "🍄", desc: "Mushroom", category: "Emoji"},
+                {char: "🥜", desc: "Peanuts", category: "Emoji"},
+                {char: "🌰", desc: "Chestnut", category: "Emoji"},
+                {char: "🍞", desc: "Bread", category: "Emoji"},
+                {char: "🥐", desc: "Croissant", category: "Emoji"},
+                {char: "🥖", desc: "Baguette Bread", category: "Emoji"},
+                {char: "🥨", desc: "Pretzel", category: "Emoji"},
+                {char: "🥯", desc: "Bagel", category: "Emoji"},
+                {char: "🥞", desc: "Pancakes", category: "Emoji"},
+                {char: "🧇", desc: "Waffle", category: "Emoji"},
+                {char: "🧀", desc: "Cheese Wedge", category: "Emoji"},
+                {char: "🍖", desc: "Meat on Bone", category: "Emoji"},
+                {char: "🍗", desc: "Poultry Leg", category: "Emoji"},
+                {char: "🥩", desc: "Cut of Meat", category: "Emoji"},
+                {char: "🥓", desc: "Bacon", category: "Emoji"},
+                {char: "🍔", desc: "Hamburger", category: "Emoji"},
+                {char: "🍟", desc: "French Fries", category: "Emoji"},
+                {char: "🍕", desc: "Pizza", category: "Emoji"},
+                {char: "🌭", desc: "Hot Dog", category: "Emoji"},
+                {char: "🥪", desc: "Sandwich", category: "Emoji"},
+                {char: "🌮", desc: "Taco", category: "Emoji"},
+                {char: "🌯", desc: "Burrito", category: "Emoji"},
+                {char: "🥙", desc: "Stuffed Flatbread", category: "Emoji"},
+                {char: "🧆", desc: "Falafel", category: "Emoji"},
+                {char: "🥚", desc: "Egg", category: "Emoji"},
+                {char: "🍳", desc: "Cooking", category: "Emoji"},
+                {char: "🥘", desc: "Shallow Pan of Food", category: "Emoji"},
+                {char: "🍲", desc: "Pot of Food", category: "Emoji"},
+                {char: "🥣", desc: "Bowl with Spoon", category: "Emoji"},
+                {char: "🥗", desc: "Green Salad", category: "Emoji"},
+                {char: "🍿", desc: "Popcorn", category: "Emoji"},
+                {char: "🧈", desc: "Butter", category: "Emoji"},
+                {char: "🧂", desc: "Salt", category: "Emoji"},
+                {char: "🥫", desc: "Canned Food", category: "Emoji"},
+                {char: "🍱", desc: "Bento Box", category: "Emoji"},
+                {char: "🍘", desc: "Rice Cracker", category: "Emoji"},
+                {char: "🍙", desc: "Rice Ball", category: "Emoji"},
+                {char: "🍚", desc: "Cooked Rice", category: "Emoji"},
+                {char: "🍛", desc: "Curry Rice", category: "Emoji"},
+                {char: "🍜", desc: "Steaming Bowl", category: "Emoji"},
+                {char: "🍝", desc: "Spaghetti", category: "Emoji"},
+                {char: "🍠", desc: "Roasted Sweet Potato", category: "Emoji"},
+                {char: "🍢", desc: "Oden", category: "Emoji"},
+                {char: "🍣", desc: "Sushi", category: "Emoji"},
+                {char: "🍤", desc: "Fried Shrimp", category: "Emoji"},
+                {char: "🍥", desc: "Fish Cake with Swirl", category: "Emoji"},
+                {char: "🥮", desc: "Moon Cake", category: "Emoji"},
+                {char: "🍡", desc: "Dango", category: "Emoji"},
+                {char: "🥟", desc: "Dumpling", category: "Emoji"},
+                {char: "🥠", desc: "Fortune Cookie", category: "Emoji"},
+                {char: "🥡", desc: "Takeout Box", category: "Emoji"},
+                {char: "🦪", desc: "Oyster", category: "Emoji"},
+                {char: "🍦", desc: "Soft Ice Cream", category: "Emoji"},
+                {char: "🍧", desc: "Shaved Ice", category: "Emoji"},
+                {char: "🍨", desc: "Ice Cream", category: "Emoji"},
+                {char: "🍩", desc: "Doughnut", category: "Emoji"},
+                {char: "🍪", desc: "Cookie", category: "Emoji"},
+                {char: "🎂", desc: "Birthday Cake", category: "Emoji"},
+                {char: "🍰", desc: "Shortcake", category: "Emoji"},
+                {char: "🧁", desc: "Cupcake", category: "Emoji"},
+                {char: "🥧", desc: "Pie", category: "Emoji"},
+                {char: "🍫", desc: "Chocolate Bar", category: "Emoji"},
+                {char: "🍬", desc: "Candy", category: "Emoji"},
+                {char: "🍭", desc: "Lollipop", category: "Emoji"},
+                {char: "🍮", desc: "Custard", category: "Emoji"},
+                {char: "🍯", desc: "Honey Pot", category: "Emoji"},
+                {char: "🍼", desc: "Baby Bottle", category: "Emoji"},
+                {char: "🥛", desc: "Glass of Milk", category: "Emoji"},
+                {char: "☕", desc: "Hot Beverage", category: "Emoji"},
+                {char: "🫖", desc: "Teapot", category: "Emoji"},
+                {char: "🍵", desc: "Teacup Without Handle", category: "Emoji"},
+                {char: "🍶", desc: "Sake", category: "Emoji"},
+                {char: "🍾", desc: "Bottle with Popping Cork", category: "Emoji"},
+                {char: "🍷", desc: "Wine Glass", category: "Emoji"},
+                {char: "🍸", desc: "Cocktail Glass", category: "Emoji"},
+                {char: "🍹", desc: "Tropical Drink", category: "Emoji"},
+                {char: "🍺", desc: "Beer Mug", category: "Emoji"},
+                {char: "🍻", desc: "Clinking Beer Mugs", category: "Emoji"},
+                {char: "🥃", desc: "Tumbler Glass", category: "Emoji"},
+                {char: "🥤", desc: "Cup with Straw", category: "Emoji"},
+                {char: "🧃", desc: "Beverage Box", category: "Emoji"},
+                {char: "🧉", desc: "Mate", category: "Emoji"},
+                {char: "🧊", desc: "Ice", category: "Emoji"}
+            ];
+        }
+
+        // Initialize the app
+        function init() {
+            console.info('Initializing Unicode Picker application');
+            
+            // Flatten all characters for search
+            Object.values(UNICODE_CATEGORIES).forEach(items => {
+                items.forEach(item => allCharacters.push(item));
+            });
+
+            renderNavButtons();
+            renderCategories();
+            setupEventListeners();
+            setupScrollSpy();
+            setupMultiSelect();
+            
+            console.info('UI setup complete');
+        }
+
+        // Render navigation buttons
+        function renderNavButtons() {
+            const navContainer = document.getElementById('navButtons');
+            
+            Object.keys(UNICODE_CATEGORIES).forEach((category, index) => {
+                const btn = document.createElement('button');
+                btn.className = `nav-btn ${index === 0 ? 'active' : ''}`;
+                btn.textContent = category;
+                btn.dataset.category = category;
+                btn.onclick = () => scrollToCategory(category);
+                navContainer.appendChild(btn);
+            });
+            
+            console.info('Navigation buttons rendered');
+        }
+
+        // Render categories
+        function renderCategories() {
+            const categoriesContainer = document.getElementById('categories');
+            
+            Object.entries(UNICODE_CATEGORIES).forEach(([category, items]) => {
+                const categoryDiv = document.createElement('div');
+                categoryDiv.className = 'category';
+                categoryDiv.dataset.category = category;
+                
+                const title = document.createElement('h2');
+                title.className = 'category-title';
+                title.textContent = category;
+                categoryDiv.appendChild(title);
+                
+                const grid = document.createElement('div');
+                grid.className = 'character-grid';
+                
+                items.forEach(item => {
+                    const btn = createCharacterButton(item.char, item.desc);
+                    grid.appendChild(btn);
+                });
+                
+                categoryDiv.appendChild(grid);
+                categoriesContainer.appendChild(categoryDiv);
+                
+                console.info(`Created category: ${category}`);
+            });
+        }
+
+        // Create character button
+        function createCharacterButton(character, description) {
+            const btn = document.createElement('button');
+            btn.className = 'character-btn';
+            btn.innerHTML = `<div class="char">${character}</div><div class="desc">${description}</div>`;
+            btn.onclick = () => copyToClipboard(character, btn);
+            
+            // Get Unicode code point(s)
+            const codePoints = [...character].map(char => {
+                const code = char.codePointAt(0).toString(16).toUpperCase();
+                return `U+${code}`;
+            }).join(' ');
+            
+            btn.title = `${description}\n${codePoints}`;
+            return btn;
+        }
+
+        // Scroll to category
+        function scrollToCategory(category) {
+            const contentContainer = document.getElementById('content');
+            const categoryElement = document.querySelector(`.category[data-category="${category}"]`);
+            
+            if (categoryElement && contentContainer) {
+                const offsetTop = categoryElement.offsetTop - contentContainer.offsetTop - 20;
+                contentContainer.scrollTo({
+                    top: offsetTop,
+                    behavior: 'smooth'
+                });
+                console.info(`Scrolled to category: ${category}`);
+            }
+        }
+
+        // Setup scroll spy to highlight active nav button
+        function setupScrollSpy() {
+            const content = document.getElementById('content');
+            const navButtons = document.querySelectorAll('.nav-btn');
+            const categories = document.querySelectorAll('.category');
+
+            content.addEventListener('scroll', () => {
+                let current = '';
+                
+                categories.forEach(category => {
+                    const rect = category.getBoundingClientRect();
+                    const contentRect = content.getBoundingClientRect();
+                    
+                    // Check if category is in viewport
+                    if (rect.top <= contentRect.top + 100) {
+                        current = category.dataset.category;
+                    }
+                });
+
+                navButtons.forEach(btn => {
+                    btn.classList.remove('active');
+                    if (btn.dataset.category === current) {
+                        btn.classList.add('active');
+                    }
+                });
+            });
+        }
+
+        // Copy to clipboard
+        async function copyToClipboard(character, button) {
+            if (multiSelectMode) {
+                // Multi-select mode: toggle selection
+                const index = selectedCharacters.indexOf(character);
+                
+                if (index > -1) {
+                    // Remove from selection
+                    selectedCharacters.splice(index, 1);
+                    button.classList.remove('selected');
+                    console.info(`Removed from selection: ${character}`);
+                } else {
+                    // Add to selection
+                    selectedCharacters.push(character);
+                    button.classList.add('selected');
+                    console.info(`Added to selection: ${character}`);
+                }
+                
+                // Update status and copy all selected characters
+                if (selectedCharacters.length > 0) {
+                    const combined = selectedCharacters.join('');
+                    try {
+                        await navigator.clipboard.writeText(combined);
+                        
+                        // Update clipboard display
+                        updateClipboardDisplay(combined);
+                        
+                    } catch (err) {
+                        console.error('Failed to copy:', err);
+                    }
+                } else {
+                    // No selection
+                    const statusMessage = document.getElementById('statusMessage');
+                    statusMessage.textContent = 'Click characters to select them';
+                    statusMessage.className = 'status-message';
+                    
+                    // Clear clipboard display
+                    updateClipboardDisplay('');
+                }
+                
+            } else {
+                // Single select mode: copy immediately
+                try {
+                    await navigator.clipboard.writeText(character);
+                    
+                    // Visual feedback
+                    button.classList.add('copied');
+                    setTimeout(() => button.classList.remove('copied'), 400);
+                    
+                    // Update status
+                    const statusMessage = document.getElementById('statusMessage');
+                    statusMessage.textContent = `Copied: ${character}`;
+                    statusMessage.className = 'status-message success';
+                    
+                    // Update clipboard display
+                    updateClipboardDisplay(character);
+                    
+                    console.info(`Copied to clipboard: ${character}`);
+                    
+                    // Reset status after 2 seconds
+                    setTimeout(() => {
+                        statusMessage.textContent = 'Click any character to copy to clipboard';
+                        statusMessage.className = 'status-message';
+                    }, 2000);
+                    
+                } catch (err) {
+                    console.error('Failed to copy:', err);
+                    
+                    const statusMessage = document.getElementById('statusMessage');
+                    statusMessage.textContent = `Failed to copy: ${err.message}`;
+                    statusMessage.className = 'status-message';
+                }
+            }
+        }
+
+        // Update clipboard display
+        function updateClipboardDisplay(content) {
+            const statusMessage = document.getElementById('statusMessage');
+            const clipboardDisplay = document.getElementById('clipboardDisplay');
+            const clipboardContent = document.getElementById('clipboardContent');
+            const clipboardCount = document.getElementById('clipboardCount');
+            const clearBtn = document.getElementById('clearSelectionBtn');
+            
+            if (content) {
+                // Show clipboard display, hide status message
+                statusMessage.style.display = 'none';
+                clipboardDisplay.style.display = 'flex';
+                
+                // Only show clear button in multi-select mode
+                clearBtn.style.display = multiSelectMode ? 'block' : 'none';
+                
+                clipboardContent.textContent = content;
+                const charCount = [...content].length; // Count Unicode characters properly
+                clipboardCount.textContent = `(${charCount} character${charCount !== 1 ? 's' : ''})`;
+            } else {
+                // Show status message, hide clipboard display
+                statusMessage.style.display = 'block';
+                clipboardDisplay.style.display = 'none';
+                clearBtn.style.display = 'none';
+            }
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            const searchInput = document.getElementById('searchInput');
+            
+            // Search functionality
+            searchInput.addEventListener('input', async (e) => {
+                const searchTerm = e.target.value.toLowerCase().trim();
+                
+                if (searchTerm === '') {
+                    // Show all categories
+                    document.querySelectorAll('.category').forEach(cat => {
+                        if (cat.dataset.category !== 'search') {
+                            cat.style.display = 'block';
+                        }
+                    });
+                    
+                    // Remove search results if exists
+                    const searchCategory = document.querySelector('[data-category="search"]');
+                    if (searchCategory) {
+                        searchCategory.remove();
+                    }
+                    return;
+                }
+                
+                // Hide all normal categories
+                document.querySelectorAll('.category').forEach(cat => {
+                    if (cat.dataset.category !== 'search') {
+                        cat.style.display = 'none';
+                    }
+                });
+                
+                // Create or update search results category
+                let searchCategory = document.querySelector('[data-category="search"]');
+                if (!searchCategory) {
+                    searchCategory = document.createElement('div');
+                    searchCategory.className = 'category';
+                    searchCategory.dataset.category = 'search';
+                    
+                    const title = document.createElement('h2');
+                    title.className = 'category-title';
+                    title.textContent = 'Search Results';
+                    searchCategory.appendChild(title);
+                    
+                    document.getElementById('categories').insertBefore(
+                        searchCategory, 
+                        document.getElementById('categories').firstChild
+                    );
+                }
+                
+                searchCategory.style.display = 'block';
+                
+                // Clear previous results except title
+                const existingGrid = searchCategory.querySelector('.character-grid');
+                if (existingGrid) {
+                    existingGrid.remove();
+                }
+                
+                // Show loading indicator for first database load
+                if (!unicodeDatabase && !isLoadingDatabase) {
+                    const loadingMsg = document.createElement('p');
+                    loadingMsg.style.color = '#6c757d';
+                    loadingMsg.style.textAlign = 'center';
+                    loadingMsg.style.padding = '20px';
+                    loadingMsg.textContent = 'Loading extended Unicode database...';
+                    searchCategory.appendChild(loadingMsg);
+                }
+                
+                const grid = document.createElement('div');
+                grid.className = 'character-grid';
+                
+                let found = false;
+                
+                // Search through visible categories first
+                Object.entries(UNICODE_CATEGORIES).forEach(([category, items]) => {
+                    items.forEach(item => {
+                        // Search in character, description, or category name
+                        if (item.char.includes(searchTerm) || 
+                            item.desc.toLowerCase().includes(searchTerm) ||
+                            category.toLowerCase().includes(searchTerm)) {
+                            const btn = createCharacterButton(item.char, item.desc);
+                            grid.appendChild(btn);
+                            found = true;
+                        }
+                    });
+                });
+                
+                // Load and search extended database
+                const extendedDb = await loadUnicodeDatabase();
+                if (extendedDb && extendedDb.length > 0) {
+                    extendedDb.forEach(item => {
+                        // Skip if already in visible categories
+                        const alreadyVisible = Object.values(UNICODE_CATEGORIES).some(items =>
+                            items.some(visibleItem => visibleItem.char === item.char)
+                        );
+                        
+                        if (!alreadyVisible) {
+                            // Search in character, description, or category name
+                            if (item.char.includes(searchTerm) || 
+                                item.desc.toLowerCase().includes(searchTerm) ||
+                                item.category.toLowerCase().includes(searchTerm)) {
+                                const btn = createCharacterButton(item.char, item.desc);
+                                grid.appendChild(btn);
+                                found = true;
+                            }
+                        }
+                    });
+                }
+                
+                // Remove loading message if it exists
+                const loadingMsg = searchCategory.querySelector('p');
+                if (loadingMsg) {
+                    loadingMsg.remove();
+                }
+                
+                if (found) {
+                    searchCategory.appendChild(grid);
+                } else {
+                    const noResults = document.createElement('p');
+                    noResults.style.color = '#6c757d';
+                    noResults.style.textAlign = 'center';
+                    noResults.style.padding = '20px';
+                    noResults.textContent = 'No characters found';
+                    searchCategory.appendChild(noResults);
+                }
+            });
+            
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    searchInput.value = '';
+                    searchInput.dispatchEvent(new Event('input'));
+                    searchInput.blur();
+                }
+            });
+            
+            console.info('Event listeners setup complete');
+        }
+
+        // Setup multi-select functionality
+        function setupMultiSelect() {
+            const toggle = document.getElementById('multiSelectToggle');
+            const clearBtn = document.getElementById('clearSelectionBtn');
+            const statusMessage = document.getElementById('statusMessage');
+            
+            toggle.addEventListener('change', (e) => {
+                multiSelectMode = e.target.checked;
+                
+                if (multiSelectMode) {
+                    statusMessage.textContent = 'Multi-select mode: Click characters to select them';
+                    console.info('Multi-select mode enabled');
+                } else {
+                    // Clear selection when switching to single mode
+                    clearSelection();
+                    statusMessage.textContent = 'Click any character to copy to clipboard';
+                    console.info('Multi-select mode disabled');
+                }
+            });
+            
+            clearBtn.addEventListener('click', clearSelection);
+        }
+
+        // Clear all selections
+        function clearSelection() {
+            selectedCharacters = [];
+            document.querySelectorAll('.character-btn.selected').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            document.getElementById('clearSelectionBtn').style.display = 'none';
+            
+            // Clear clipboard display
+            updateClipboardDisplay('');
+            
+            const statusMessage = document.getElementById('statusMessage');
+            if (multiSelectMode) {
+                statusMessage.textContent = 'Multi-select mode: Click characters to select them';
+            } else {
+                statusMessage.textContent = 'Click any character to copy to clipboard';
+            }
+            statusMessage.className = 'status-message';
+            
+            console.info('Selection cleared');
+        }
+
+        // Initialize on page load
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
+    </script>
+</body>
+</html>

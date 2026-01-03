@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unicode & Emoji Picker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 700px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 24px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: flex;
+            height: 600px;
+        }
+
+        .sidebar {
+            width: 200px;
+            background: #f8f9fa;
+            border-right: 2px solid #e9ecef;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .search-box {
+            padding: 16px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            font-size: 13px;
+            transition: border-color 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .nav-buttons {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+        }
+
+        .nav-buttons::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .nav-buttons::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 3px;
+        }
+
+        .nav-btn {
+            width: 100%;
+            padding: 12px 16px;
+            margin-bottom: 4px;
+            border: none;
+            background: transparent;
+            text-align: left;
+            font-size: 14px;
+            font-weight: 500;
+            color: #495057;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .nav-btn:hover {
+            background: white;
+            color: #667eea;
+        }
+
+        .nav-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .content {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+        }
+
+        .content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .content::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 4px;
+        }
+
+        .content::-webkit-scrollbar-track {
+            background: #f8f9fa;
+        }
+
+        .category {
+            margin-bottom: 40px;
+            scroll-margin-top: 20px;
+        }
+
+        .category:last-child {
+            margin-bottom: 0;
+        }
+
+        .category-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .character-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+            gap: 12px;
+        }
+
+        .character-btn {
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 8px;
+            min-height: 100px;
+        }
+
+        .character-btn .char {
+            font-size: 32px;
+            margin-bottom: 6px;
+        }
+
+        .character-btn .desc {
+            font-size: 11px;
+            color: #6c757d;
+            text-align: center;
+            line-height: 1.3;
+            font-weight: 500;
+        }
+
+        .character-btn:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        }
+
+        .character-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(102, 126, 234, 0.2);
+        }
+
+        .character-btn.copied {
+            animation: copyPulse 0.4s ease;
+        }
+
+        @keyframes copyPulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.1);
+                background: #667eea;
+                color: white;
+            }
+        }
+
+        .status-bar {
+            background: #f8f9fa;
+            padding: 16px 24px;
+            border-top: 1px solid #e9ecef;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .status-message {
+            font-size: 14px;
+            color: #6c757d;
+            flex: 1;
+        }
+
+        .status-message.success {
+            color: #28a745;
+            font-weight: 500;
+        }
+
+        .keyboard-hint {
+            font-size: 12px;
+            color: #adb5bd;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .kbd {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-family: monospace;
+            font-size: 11px;
+        }
+
+        .search-box {
+            margin-bottom: 16px;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        @media (max-width: 600px) {
+            .main-content {
+                flex-direction: column;
+                height: auto;
+            }
+
+            .sidebar {
+                width: 100%;
+                border-right: none;
+                border-bottom: 2px solid #e9ecef;
+            }
+
+            .nav-buttons {
+                display: flex;
+                overflow-x: auto;
+                padding: 8px;
+            }
+
+            .nav-btn {
+                white-space: nowrap;
+                margin-right: 4px;
+                margin-bottom: 0;
+            }
+
+            .content {
+                max-height: 500px;
+            }
+
+            .character-grid {
+                grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            }
+
+            .character-btn .char {
+                font-size: 28px;
+            }
+
+            .character-btn .desc {
+                font-size: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Unicode & Emoji Picker</h1>
+            <p>Click any character to copy to clipboard</p>
+        </div>
+
+        <div class="main-content">
+            <div class="sidebar">
+                <div class="search-box">
+                    <input 
+                        type="text" 
+                        class="search-input" 
+                        id="searchInput" 
+                        placeholder="Search..."
+                        autocomplete="off"
+                    >
+                </div>
+                <nav class="nav-buttons" id="navButtons"></nav>
+            </div>
+
+            <div class="content" id="content">
+                <div id="categories"></div>
+            </div>
+        </div>
+
+        <div class="status-bar">
+            <div class="status-message" id="statusMessage">
+                Click any character to copy to clipboard
+            </div>
+            <div class="keyboard-hint">
+                <kbd class="kbd">ESC</kbd> to clear search
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Unicode character categories with descriptions
+        const UNICODE_CATEGORIES = {
+            "Arrows": [
+                {char: "→", desc: "Right Arrow"},
+                {char: "←", desc: "Left Arrow"},
+                {char: "↑", desc: "Up Arrow"},
+                {char: "↓", desc: "Down Arrow"},
+                {char: "↔", desc: "Left-Right Arrow"},
+                {char: "↕", desc: "Up-Down Arrow"},
+                {char: "⇒", desc: "Right Double Arrow"},
+                {char: "⇐", desc: "Left Double Arrow"},
+                {char: "⇑", desc: "Up Double Arrow"},
+                {char: "⇓", desc: "Down Double Arrow"}
+            ],
+            "Check & Cross": [
+                {char: "✅", desc: "Check Mark Button"},
+                {char: "❌", desc: "Cross Mark"},
+                {char: "𐄂", desc: "Cross Mark (Alt)"},
+                {char: "✓", desc: "Check Mark"},
+                {char: "✗", desc: "Ballot X"},
+                {char: "☑", desc: "Checked Box"},
+                {char: "☒", desc: "Crossed Box"},
+                {char: "⊗", desc: "Circled Times"},
+                {char: "⊕", desc: "Circled Plus"}
+            ],
+            "Symbols": [
+                {char: "°", desc: "Degree Sign"},
+                {char: "™️", desc: "Trademark"},
+                {char: "©️", desc: "Copyright"},
+                {char: "®", desc: "Registered Trademark"},
+                {char: "§", desc: "Section Sign"},
+                {char: "¶", desc: "Pilcrow/Paragraph"},
+                {char: "†", desc: "Dagger"},
+                {char: "‡", desc: "Double Dagger"},
+                {char: "•", desc: "Bullet Point"},
+                {char: "·", desc: "Middle Dot"}
+            ],
+            "Box Drawing": [
+                {char: "├", desc: "Box Drawings Light Vertical Right"},
+                {char: "─", desc: "Box Drawings Light Horizontal"},
+                {char: "└", desc: "Box Drawings Light Up Right"},
+                {char: "┌", desc: "Box Drawings Light Down Right"},
+                {char: "┐", desc: "Box Drawings Light Down Left"},
+                {char: "┘", desc: "Box Drawings Light Up Left"},
+                {char: "│", desc: "Box Drawings Light Vertical"},
+                {char: "┤", desc: "Box Drawings Light Vertical Left"},
+                {char: "┬", desc: "Box Drawings Light Down Horizontal"},
+                {char: "┴", desc: "Box Drawings Light Up Horizontal"},
+                {char: "┼", desc: "Box Drawings Light Cross"}
+            ],
+            "Math": [
+                {char: "×", desc: "Multiplication Sign"},
+                {char: "÷", desc: "Division Sign"},
+                {char: "±", desc: "Plus-Minus Sign"},
+                {char: "=", desc: "Equals Sign"},
+                {char: "≠", desc: "Not Equal"},
+                {char: "≈", desc: "Approximately Equal"},
+                {char: "∼", desc: "Similar To"},
+                {char: "≤", desc: "Less Than or Equal"},
+                {char: "≥", desc: "Greater Than or Equal"},
+                {char: "√", desc: "Square Root"},
+                {char: "∞", desc: "Infinity"},
+                {char: "∑", desc: "Summation"},
+                {char: "∫", desc: "Integral"}
+            ],
+            "Punctuation": [
+                {char: "…", desc: "Ellipsis"},
+                {char: "–", desc: "En Dash"},
+                {char: "—", desc: "Em Dash"},
+                {char: "‹", desc: "Single Left Angle Quote"},
+                {char: "›", desc: "Single Right Angle Quote"},
+                {char: "«", desc: "Double Left Angle Quote"},
+                {char: "»", desc: "Double Right Angle Quote"},
+                {char: "\u2018", desc: "Left Single Quote"},
+                {char: "\u2019", desc: "Right Single Quote"},
+                {char: "\u201C", desc: "Left Double Quote"},
+                {char: "\u201D", desc: "Right Double Quote"}
+            ],
+            "Common Emoji": [
+                {char: "🙂", desc: "Slightly Smiling Face"},
+                {char: "😂", desc: "Face with Tears of Joy"},
+                {char: "❤️", desc: "Red Heart"},
+                {char: "👍", desc: "Thumbs Up"},
+                {char: "👎", desc: "Thumbs Down"},
+                {char: "🎉", desc: "Party Popper"},
+                {char: "🎂", desc: "Birthday Cake"},
+                {char: "🥂", desc: "Clinking Glasses"},
+                {char: "🍽️", desc: "Fork and Knife with Plate"},
+                {char: "☀️", desc: "Sun"},
+                {char: "☁️", desc: "Cloud"},
+                {char: "🌧️", desc: "Rain Cloud"},
+                {char: "🔥", desc: "Fire"},
+                {char: "💧", desc: "Droplet"},
+                {char: "⚡", desc: "Lightning Bolt"},
+                {char: "⭐", desc: "Star"},
+                {char: "🌍", desc: "Globe"},
+                {char: "🚀", desc: "Rocket"},
+                {char: "✈️", desc: "Airplane"},
+                {char: "🏖️", desc: "Beach/Vacation"},
+                {char: "💡", desc: "Light Bulb"},
+                {char: "🔍", desc: "Magnifying Glass"},
+                {char: "🎯", desc: "Dartboard"},
+                {char: "📅", desc: "Calendar"},
+                {char: "⏱️", desc: "Stopwatch/Timer"},
+                {char: "⏳", desc: "Hourglass"},
+                {char: "📝", desc: "Memo/Note"},
+                {char: "📄", desc: "Page/Document"},
+                {char: "✉️", desc: "Envelope"},
+                {char: "📞", desc: "Phone"},
+                {char: "⚙️", desc: "Gear"},
+                {char: "🛠️", desc: "Hammer and Wrench"},
+                {char: "✂️", desc: "Scissors"},
+                {char: "🗑️", desc: "Wastebasket"},
+                {char: "🧵", desc: "Thread"},
+                {char: "💵", desc: "Dollar Banknote"},
+                {char: "⚠️", desc: "Warning Sign"},
+                {char: "🚫", desc: "Prohibited"},
+                {char: "⛔", desc: "No Entry"},
+                {char: "🛑", desc: "Stop Sign"},
+                {char: "🎵", desc: "Music Note"},
+                {char: "⎇", desc: "Alternative Key Symbol"},
+                {char: "🇸🇬", desc: "Singapore Flag"}
+            ],
+            "Tech Emoji": [
+                {char: "💻", desc: "Laptop Computer"},
+                {char: "🖥️", desc: "Desktop Computer"},
+                {char: "📱", desc: "Mobile Phone"},
+                {char: "💾", desc: "Floppy Disk"},
+                {char: "📁", desc: "Folder"},
+                {char: "🔋", desc: "Battery Full"},
+                {char: "🪫", desc: "Low Battery"},
+                {char: "🛜", desc: "Wireless/WiFi"},
+                {char: "📶", desc: "Signal Bars"},
+                {char: "🔒", desc: "Lock"},
+                {char: "🔓", desc: "Unlocked"},
+                {char: "🔐", desc: "Locked with Key"},
+                {char: "🔑", desc: "Key"},
+                {char: "🐛", desc: "Bug"},
+                {char: "📊", desc: "Bar Chart"},
+                {char: "📈", desc: "Chart Increasing"}
+            ]
+        };
+
+        let allCharacters = [];
+        let activeCategory = null;
+
+        // Initialize the app
+        function init() {
+            console.info('Initializing Unicode Picker application');
+            
+            // Flatten all characters for search
+            Object.values(UNICODE_CATEGORIES).forEach(items => {
+                items.forEach(item => allCharacters.push(item));
+            });
+
+            renderNavButtons();
+            renderCategories();
+            setupEventListeners();
+            setupScrollSpy();
+            
+            console.info('UI setup complete');
+        }
+
+        // Render navigation buttons
+        function renderNavButtons() {
+            const navContainer = document.getElementById('navButtons');
+            
+            Object.keys(UNICODE_CATEGORIES).forEach((category, index) => {
+                const btn = document.createElement('button');
+                btn.className = `nav-btn ${index === 0 ? 'active' : ''}`;
+                btn.textContent = category;
+                btn.dataset.category = category;
+                btn.onclick = () => scrollToCategory(category);
+                navContainer.appendChild(btn);
+            });
+            
+            console.info('Navigation buttons rendered');
+        }
+
+        // Render categories
+        function renderCategories() {
+            const categoriesContainer = document.getElementById('categories');
+            
+            Object.entries(UNICODE_CATEGORIES).forEach(([category, items]) => {
+                const categoryDiv = document.createElement('div');
+                categoryDiv.className = 'category';
+                categoryDiv.dataset.category = category;
+                
+                const title = document.createElement('h2');
+                title.className = 'category-title';
+                title.textContent = category;
+                categoryDiv.appendChild(title);
+                
+                const grid = document.createElement('div');
+                grid.className = 'character-grid';
+                
+                items.forEach(item => {
+                    const btn = createCharacterButton(item.char, item.desc);
+                    grid.appendChild(btn);
+                });
+                
+                categoryDiv.appendChild(grid);
+                categoriesContainer.appendChild(categoryDiv);
+                
+                console.info(`Created category: ${category}`);
+            });
+        }
+
+        // Create character button
+        function createCharacterButton(character, description) {
+            const btn = document.createElement('button');
+            btn.className = 'character-btn';
+            btn.innerHTML = `<div class="char">${character}</div><div class="desc">${description}</div>`;
+            btn.onclick = () => copyToClipboard(character, btn);
+            btn.title = `Click to copy: ${character} (${description})`;
+            return btn;
+        }
+
+        // Scroll to category
+        function scrollToCategory(category) {
+            const contentContainer = document.getElementById('content');
+            const categoryElement = document.querySelector(`.category[data-category="${category}"]`);
+            
+            if (categoryElement && contentContainer) {
+                const offsetTop = categoryElement.offsetTop - contentContainer.offsetTop - 20;
+                contentContainer.scrollTo({
+                    top: offsetTop,
+                    behavior: 'smooth'
+                });
+                console.info(`Scrolled to category: ${category}`);
+            }
+        }
+
+        // Setup scroll spy to highlight active nav button
+        function setupScrollSpy() {
+            const content = document.getElementById('content');
+            const navButtons = document.querySelectorAll('.nav-btn');
+            const categories = document.querySelectorAll('.category');
+
+            content.addEventListener('scroll', () => {
+                let current = '';
+                
+                categories.forEach(category => {
+                    const rect = category.getBoundingClientRect();
+                    const contentRect = content.getBoundingClientRect();
+                    
+                    // Check if category is in viewport
+                    if (rect.top <= contentRect.top + 100) {
+                        current = category.dataset.category;
+                    }
+                });
+
+                navButtons.forEach(btn => {
+                    btn.classList.remove('active');
+                    if (btn.dataset.category === current) {
+                        btn.classList.add('active');
+                    }
+                });
+            });
+        }
+
+        // Copy to clipboard
+        async function copyToClipboard(character, button) {
+            try {
+                await navigator.clipboard.writeText(character);
+                
+                // Visual feedback
+                button.classList.add('copied');
+                setTimeout(() => button.classList.remove('copied'), 400);
+                
+                // Update status
+                const statusMessage = document.getElementById('statusMessage');
+                statusMessage.textContent = `Copied: ${character}`;
+                statusMessage.className = 'status-message success';
+                
+                console.info(`Copied to clipboard: ${character}`);
+                
+                // Reset status after 2 seconds
+                setTimeout(() => {
+                    statusMessage.textContent = 'Click any character to copy to clipboard';
+                    statusMessage.className = 'status-message';
+                }, 2000);
+                
+            } catch (err) {
+                console.error('Failed to copy:', err);
+                
+                const statusMessage = document.getElementById('statusMessage');
+                statusMessage.textContent = `Failed to copy: ${err.message}`;
+                statusMessage.className = 'status-message';
+            }
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            const searchInput = document.getElementById('searchInput');
+            
+            // Search functionality
+            searchInput.addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase().trim();
+                
+                if (searchTerm === '') {
+                    // Show all categories
+                    document.querySelectorAll('.category').forEach(cat => {
+                        if (cat.dataset.category !== 'search') {
+                            cat.style.display = 'block';
+                        }
+                    });
+                    
+                    // Remove search results if exists
+                    const searchCategory = document.querySelector('[data-category="search"]');
+                    if (searchCategory) {
+                        searchCategory.remove();
+                    }
+                    return;
+                }
+                
+                // Hide all normal categories
+                document.querySelectorAll('.category').forEach(cat => {
+                    if (cat.dataset.category !== 'search') {
+                        cat.style.display = 'none';
+                    }
+                });
+                
+                // Create or update search results category
+                let searchCategory = document.querySelector('[data-category="search"]');
+                if (!searchCategory) {
+                    searchCategory = document.createElement('div');
+                    searchCategory.className = 'category';
+                    searchCategory.dataset.category = 'search';
+                    
+                    const title = document.createElement('h2');
+                    title.className = 'category-title';
+                    title.textContent = 'Search Results';
+                    searchCategory.appendChild(title);
+                    
+                    document.getElementById('categories').insertBefore(
+                        searchCategory, 
+                        document.getElementById('categories').firstChild
+                    );
+                }
+                
+                searchCategory.style.display = 'block';
+                
+                // Clear previous results except title
+                const existingGrid = searchCategory.querySelector('.character-grid');
+                if (existingGrid) {
+                    existingGrid.remove();
+                }
+                
+                const grid = document.createElement('div');
+                grid.className = 'character-grid';
+                
+                // Search through all characters
+                let found = false;
+                Object.entries(UNICODE_CATEGORIES).forEach(([category, items]) => {
+                    items.forEach(item => {
+                        // Search in character, description, or category name
+                        if (item.char.includes(searchTerm) || 
+                            item.desc.toLowerCase().includes(searchTerm) ||
+                            category.toLowerCase().includes(searchTerm)) {
+                            const btn = createCharacterButton(item.char, item.desc);
+                            grid.appendChild(btn);
+                            found = true;
+                        }
+                    });
+                });
+                
+                if (found) {
+                    searchCategory.appendChild(grid);
+                } else {
+                    const noResults = document.createElement('p');
+                    noResults.style.color = '#6c757d';
+                    noResults.style.textAlign = 'center';
+                    noResults.style.padding = '20px';
+                    noResults.textContent = 'No characters found';
+                    searchCategory.appendChild(noResults);
+                }
+            });
+            
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    searchInput.value = '';
+                    searchInput.dispatchEvent(new Event('input'));
+                    searchInput.blur();
+                }
+            });
+            
+            console.info('Event listeners setup complete');
+        }
+
+        // Initialize on page load
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
+    </script>
+</body>
+</html>
